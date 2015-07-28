@@ -113,6 +113,120 @@ module Bounds {
         }
     };
 
+    //
+    // Grounds
+    //
+      
+    export function addGroundRects(
+        W : number,
+        H : number,
+        bodies : any[],
+        splits : number,
+        cellWidth: number,
+        isDown : boolean
+        ){
+        for( let i=0; i<splits; ++i ){
+            const x = i*cellWidth;
+            const h = PADDING+Math.random()*40;
+            const y = isDown ? H-PADDING-(h/2) : PADDING+(h/2);
+            const trap = Bodies.rectangle(
+                x+PADDING+(cellWidth/2), y,
+                cellWidth, h,
+                { isStatic : true }
+                );
+            bodies.push(trap);   
+        }
+    };
+    
+    export function addGroundRandomFixedSplits(
+        W : number,
+        H : number,
+        bodies : any[],
+        splits : number,
+        cellWidth: number,
+        isDown : boolean
+        ){
+        // last split used
+        let last = Math.random()*100;
+        for(let i=0;i<splits;++i){
+            const x = (i*cellWidth) + PADDING +(cellWidth/2);
+            const y = isDown ? H-PADDING-(cellWidth/2) : PADDING+(cellWidth/2);
+            const dy1 = last;
+            const dy2 = Math.random()*100;
+            last = dy2;
+    
+            const vs = [
+                { x:-(cellWidth/2), y:+(cellWidth/2) }, // bottom left
+                { x:-(cellWidth/2), y:-(cellWidth/2)-dy1 }, // top left
+                { x:+(cellWidth/2), y:-(cellWidth/2)-dy2 }, // top right
+                { x:+(cellWidth/2), y:+(cellWidth/2) } // bottom right
+            ];
+            
+            if( !isDown ){
+                vs.forEach( (v,i,a) => a[i].y *= -1 );
+            }
+            
+            const c = Vertices.centre(vs);
+            const trap = Bodies.fromVertices(
+                x+c.x, // adds the x_offset
+                y+c.y, // adds the y_offset
+                Vertices.create(vs),
+                { isStatic : true }
+                );
+                
+            bodies.push(trap);   
+        }
+    };
+    
+    export function addGroundRandomSplits(
+        W : number,
+        H : number,
+        bodies : any[],
+        isDown : boolean
+        ){
+            
+        // last split used
+        let accum = PADDING;
+        let last = Math.random()*100;
+        const cellHeight = 10;
+        
+        while( accum < (W-PADDING) ) {
+            let cellWidth = Math.random()*100+10;
+            if( (accum+cellWidth) > (W-PADDING)){
+                cellWidth = W-PADDING-accum;
+            }
+            
+            const x = accum +(cellWidth/2);
+            const y = isDown ? H-PADDING-(cellHeight/2) : PADDING+(cellHeight/2);
+            const dy1 = last;
+            const dy2 = Math.random()*100;
+            
+            last = dy2;
+            accum += cellWidth;
+    
+            const vs = [
+                { x:-(cellWidth/2), y:+(cellHeight/2) }, // bottom left
+                { x:-(cellWidth/2), y:-(cellHeight/2)-dy1 }, // top left
+                { x:+(cellWidth/2), y:-(cellHeight/2)-dy2 }, // top right
+                { x:+(cellWidth/2), y:+(cellHeight/2) } // bottom right
+            ];
+            
+            if( !isDown ){
+                vs.forEach( (v,i,a) => a[i].y *= -1 );
+            }
+            
+            const c = Vertices.centre(vs);
+            const trap = Bodies.fromVertices(
+                x+c.x, // adds the x_offset
+                y+c.y, // adds the y_offset
+                Vertices.create(vs),
+                { isStatic : true }
+                );
+                
+            bodies.push(trap);   
+        }
+    };
+    
 };
 
 // entry function
@@ -158,31 +272,24 @@ function main() {
         Bounds.make(W, H, Bounds.Position.LEFT),
         Bounds.make(W, H, Bounds.Position.RIGHT)
     ];
-
-    //const ground: { x: number, y: number }[] = [];
-
-    /*ground.push( {x:0, y: 0} );
-    const MAX = 50;
-    for (let i = 1; i < (W/MAX)-1; ++i) {
-      ground.push( {x:i*MAX, y: -(Math.random()*100+50)} );
-    }
-    ground.push( {x:W, y: 0} );
-
-    bodies.push( Bodies.fromVertices(W/2, H-20,
-      Matter.Vertices.create(ground), { isStatic : true } )
-      );*/
-
-    //bodies.push(Bodies.trapezoid(W/2, H/2, 200, 100, 0.5));
     
-    /*
-    for (let i = 0; i < 30; ++i) {
-        bodies.push(Bodies.rectangle(
-            Math.random() * (W - 20) + 10,
-            Math.random() * (H - 20) + 10,
-            Math.random() * 50 + 10,
-            Math.random() * 50 + 10
-        ));
-    } */
+    //
+    // Grounds
+    //
+    
+    // const SPLITS = 26;
+    // const WG = (W-20)/SPLITS;
+    
+    // Bounds.addGroundRects(W,H,bodies,SPLITS, WG, true);
+    // Bounds.addGroundRects(W,H,bodies,SPLITS, WG, false);
+    
+    // random fixed split
+    //Bounds.addGroundRandomFixedSplits(W,H,bodies,SPLITS, WG, true);
+    //Bounds.addGroundRandomFixedSplits(W,H,bodies,SPLITS, WG, false);
+    
+    // random grounds
+    Bounds.addGroundRandomSplits(W,H,bodies,true);
+    Bounds.addGroundRandomSplits(W,H,bodies,false);
     
     //
     // Asteroid Field
@@ -211,34 +318,7 @@ function main() {
             bodies.push(trap);
         }
     }
-    
-    //
-    // Ground
-    //
-
-    const PADDING = 10;
-    const SPLITS = 26;
-    const WG = (W-20)/SPLITS;
-    
-    // use trapezoids instead?
-    //const trap = Bodies.trapezoid( 20*(i+1), H / 2, Math.random()*30+10, Math.random()*30+10, Math.random() );
-    for(let j=0;j<2;++j){
-        for(let i=0;i<SPLITS;++i){
-            const x = i*WG;
-            const h = PADDING+Math.random()*40;
-            // j === 0 ? DOWN : UP
-            const y = j === 0 ? H-PADDING-(h/2) : PADDING+(h/2);
-            const trap = Bodies.rectangle(
-                x+PADDING+(WG/2),
-                y,
-                WG,
-                h,
-                { isStatic : true }
-                )
-            bodies.push(trap);   
-        }
-    }
-
+        
     // add all bodies
     World.add(engine.world, bodies);
     Engine.run(engine);
