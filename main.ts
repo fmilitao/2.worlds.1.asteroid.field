@@ -10,6 +10,7 @@ const Vector = Matter.Vector;
 const Vertices = Matter.Vertices;
 const Events = Matter.Events;
 const Composite = Matter.Composite;
+const Constraint = Matter.Constraint;
 const Body = Matter.Body;
         
 // virtual keys that we need for this game
@@ -227,6 +228,95 @@ module Bounds {
         }
     };
     
+    
+    export function addAsteroids(W : number, H: number, bodies :any[]){
+        // we want 3 lines of asteroids, middle line shifted
+        const CELL_W = W / 10;
+        const CELL_H = (H / 3) / 3; // 3 gravity zone, 3 lines of asteroids
+    
+        for (let j = 0; j < ((H/3) / CELL_H); ++j) {
+            for (let i = 0; i < (W / CELL_W); ++i) {
+                const x = i*CELL_W + (CELL_W / 2);
+                const y = j*CELL_H + (H / 3) + (CELL_H / 2);
+                
+                // using rectangles
+                const trap = Bodies.rectangle(
+                    x+(5-Math.random()*10),
+                    y+(2-Math.random()*4),
+                    (CELL_W / 3)+(5-Math.random()*10),
+                    (CELL_H / 3)+(5-Math.random()*10),
+                    { friction : 0.1, frictionAir: 0.001 }
+                    );
+                    
+
+                // using polygon
+                // const trap = Bodies.polygon(
+                //     x+(5-Math.random()*10),
+                //     y+(2-Math.random()*4),
+                //     15-Math.random()*10,
+                //     (CELL_W / 4)+(5-Math.random()*10),
+                //     { friction : 0.1, frictionAir: 0.001 }
+                //     );
+                        
+                Body.setAngularVelocity(trap, (Math.random() - 0.5) * 0.05);
+                const forceMagnitude = 0.0005 * trap.mass;
+                Body.applyForce(trap, trap.position,
+                    Vector.rotate({ x: 0, y: -forceMagnitude }, Math.random()*Math.PI*2)
+                );
+                bodies.push(trap);
+            }
+        }
+    };
+    
+    export function addAsteroids2(W : number, H: number, bodies :any[]){
+        const x = W/2, y = H/2;
+        
+        const PARTS = 7;
+        const compound : any[] = [];
+        // TODO: add more than one, and random angle step.
+        let last = {x:30+Math.random()*20,y:0};
+        const first = {x:last.x,y:last.y};
+        for(let i=0;i<PARTS;++i){
+            const angle = (Math.PI*2)/PARTS;
+            
+            // initial point configuration
+            const CENTER = {x:0,y:0};
+            const WIDTH = {x:last.x, y:last.y};
+            let THIRD : {x:number,y:number};
+            
+            if( i === (PARTS-1) ){
+                THIRD = first;
+            }else{
+                THIRD = {x:30+Math.random()*20,y:0};
+                last.x = THIRD.x;
+                last.y = THIRD.y;
+            }
+            Vertices.rotate([THIRD], angle,CENTER);
+            
+            // rotate to desired angle
+            Vertices.rotate([WIDTH,THIRD], angle*i,CENTER);
+            
+            const vs = [ CENTER, WIDTH, THIRD ];
+            const c = Vertices.centre(vs);
+            const trap = Bodies.fromVertices(
+                x+c.x, // adds the x_offset
+                y+c.y, // adds the y_offset
+                Vertices.create(vs)
+                );
+                
+            compound.push(trap);      
+        } 
+        
+        const ast = Body.create({ parts: compound, friction : 0.1, frictionAir: 0.001 });
+        bodies.push(ast);
+        
+        Body.setAngularVelocity(ast, (Math.random() - 0.5) * 0.05);
+                const forceMagnitude = 0.0005 * ast.mass;
+                Body.applyForce(ast, ast.position,
+                    Vector.rotate({ x: 0, y: -forceMagnitude }, Math.random()*Math.PI*2)
+                );
+    };
+    
 };
 
 // entry function
@@ -250,7 +340,7 @@ function main() {
                 height: H,
                 wireframes: true,
                 showVelocity: true,
-                showPosition: true
+                showPositions: true
             }
         },
         world: {
@@ -295,29 +385,7 @@ function main() {
     // Asteroid Field
     //
 
-    // we want 3 lines of asteroids, middle line shifted
-    const CELL_W = W / 10;
-    const CELL_H = (H / 3) / 3; // 3 gravity zone, 3 lines of asteroids
-
-    for (let j = 0; j < ((H/3) / CELL_H); ++j) {
-        for (let i = 0; i < (W / CELL_W); ++i) {
-            const x = i*CELL_W + (CELL_W / 2);
-            const y = j*CELL_H + (H / 3) + (CELL_H / 2);
-            const trap = Bodies.rectangle(
-                x+(5-Math.random()*10),
-                y+(2-Math.random()*4),
-                (CELL_W / 3)+(5-Math.random()*10),
-                (CELL_H / 3)+(5-Math.random()*10),
-                { friction : 0.1, frictionAir: 0.001 }
-                )
-            Body.setAngularVelocity(trap, (Math.random() - 0.5) * 0.05);
-            const forceMagnitude = 0.0005 * trap.mass;
-            Body.applyForce(trap, trap.position,
-                Vector.rotate({ x: 0, y: -forceMagnitude }, Math.random()*Math.PI*2)
-            );
-            bodies.push(trap);
-        }
-    }
+    Bounds.addAsteroids2(W,H,bodies);
         
     // add all bodies
     World.add(engine.world, bodies);
