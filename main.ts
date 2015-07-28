@@ -2,6 +2,16 @@
 // FIXME: during experimentation only...?
 declare var Matter: any;
 
+// Matter.js module aliases
+const Engine = Matter.Engine;
+const World = Matter.World;
+const Bodies = Matter.Bodies;
+const Vector = Matter.Vector;
+const Vertices = Matter.Vertices;
+const Events = Matter.Events;
+const Composite = Matter.Composite;
+const Body = Matter.Body;
+        
 // virtual keys that we need for this game
 const enum VK {
     W = 87, // 'w'
@@ -26,9 +36,9 @@ class Ship {
     public body: any;
 
     constructor(x: number, y: number) {
-        this.body = Matter.Bodies.fromVertices(
+        this.body = Bodies.fromVertices(
             x, y, // initial position
-            Matter.Vertices.create(Ship.vertices),
+            Vertices.create(Ship.vertices),
             {
                 // friction: 0.01
                 restitution: 0.5
@@ -36,28 +46,28 @@ class Ship {
     }
 
     brake(){
-        Matter.Body.setVelocity(this.body, {
+        Body.setVelocity(this.body, {
             x: this.body.velocity.x * Ship.factor,
             y: this.body.velocity.y * Ship.factor
         });
-        Matter.Body.setAngularVelocity(this.body, this.body.angularVelocity * Ship.factor);
+        Body.setAngularVelocity(this.body, this.body.angularVelocity * Ship.factor);
     }
 
     thrust(){
         const forceMagnitude = 0.0005 * this.body.mass;
-        Matter.Body.applyForce(this.body, this.body.position,
-            Matter.Vector.rotate({ x: 0, y: -forceMagnitude }, this.body.angle)
+        Body.applyForce(this.body, this.body.position,
+            Vector.rotate({ x: 0, y: -forceMagnitude }, this.body.angle)
             );
     }
 
     turnLeft(){
-        Matter.Body.rotate(this.body, -Math.PI / DIR);
-        Matter.Body.setAngularVelocity(this.body, 0);
+        Body.rotate(this.body, -Math.PI / DIR);
+        Body.setAngularVelocity(this.body, 0);
     }
 
     turnRight(){
-        Matter.Body.rotate(this.body, Math.PI / DIR);
-        Matter.Body.setAngularVelocity(this.body, 0);
+        Body.rotate(this.body, Math.PI / DIR);
+        Body.setAngularVelocity(this.body, 0);
     }
 
     rotate(isLeft : boolean){
@@ -67,12 +77,12 @@ class Ship {
         const mx = 5; // was 50, 200
         const my = 20;
 
-        Matter.Body.applyForce(this.body, Matter.Vector.rotate({ x: m * (-mx), y: m * my }, this.body.angle),
-            Matter.Vector.rotate({ x: 0, y: forceMagnitude }, this.body.angle)
+        Body.applyForce(this.body, Vector.rotate({ x: m * (-mx), y: m * my }, this.body.angle),
+            Vector.rotate({ x: 0, y: forceMagnitude }, this.body.angle)
         );
 
-        Matter.Body.applyForce(this.body, Matter.Vector.rotate({ x: m * mx, y: m * (-my) }, this.body.angle),
-            Matter.Vector.rotate({ x: 0, y: -forceMagnitude }, this.body.angle)
+        Body.applyForce(this.body, Vector.rotate({ x: m * mx, y: m * (-my) }, this.body.angle),
+            Vector.rotate({ x: 0, y: -forceMagnitude }, this.body.angle)
         );
     }
 
@@ -93,13 +103,13 @@ module Bounds {
     export function make(w: number, h : number, p : Position){
         switch(p){
             case Position.UP:
-                return Matter.Bodies.rectangle(w / 2, 0, w, WIDTH, { isStatic: true })
+                return Bodies.rectangle(w / 2, 0, w, WIDTH, { isStatic: true })
             case Position.DOWN:
-                return Matter.Bodies.rectangle(w / 2, h, w, WIDTH, { isStatic: true });
+                return Bodies.rectangle(w / 2, h, w, WIDTH, { isStatic: true });
             case Position.LEFT:
-                return Matter.Bodies.rectangle(0, h / 2, WIDTH, h, { isStatic: true });
+                return Bodies.rectangle(0, h / 2, WIDTH, h, { isStatic: true });
             case Position.RIGHT:
-                return Matter.Bodies.rectangle(w, h / 2, WIDTH, h, { isStatic: true });
+                return Bodies.rectangle(w, h / 2, WIDTH, h, { isStatic: true });
         }
     };
 
@@ -112,14 +122,6 @@ function main() {
     const W = Math.max(800,window.innerWidth);
     const H = Math.max(600, window.innerHeight);
     const hud = document.getElementById(OUT);
-
-    // Matter.js module aliases
-    const Engine = Matter.Engine,
-        World = Matter.World,
-        Bodies = Matter.Bodies,
-        Vector = Matter.Vector,
-        Events = Matter.Events,
-        Body = Matter.Body;
 
     // create a Matter.js engine and render
     const engine = Engine.create({
@@ -142,9 +144,11 @@ function main() {
         }
     });
 
-    // other stuff
+    //
+    // Bodies
+    //
 
-    const ship = new Ship(100,500);
+    const ship = new Ship(100,600);
 
     const bodies = [
         ship.body,
@@ -155,7 +159,7 @@ function main() {
         Bounds.make(W, H, Bounds.Position.RIGHT)
     ];
 
-    const ground: { x: number, y: number }[] = [];
+    //const ground: { x: number, y: number }[] = [];
 
     /*ground.push( {x:0, y: 0} );
     const MAX = 50;
@@ -170,13 +174,6 @@ function main() {
 
     //bodies.push(Bodies.trapezoid(W/2, H/2, 200, 100, 0.5));
     
-    let i = 15;
-    while( i-- > 0 ){
-        const trap = Bodies.trapezoid( 20*(i+1), H / 2, Math.random()*30+10, Math.random()*30+10, Math.random() );
-        Body.setAngularVelocity(trap, (Math.random()-0.5)*0.01);
-        bodies.push(trap);
-    }
-    
     /*
     for (let i = 0; i < 30; ++i) {
         bodies.push(Bodies.rectangle(
@@ -186,12 +183,69 @@ function main() {
             Math.random() * 50 + 10
         ));
     } */
+    
+    //
+    // Asteroid Field
+    //
 
-    // add all of the bodies to the world (default 800x600)
+    // we want 3 lines of asteroids, middle line shifted
+    const CELL_W = W / 10;
+    const CELL_H = (H / 3) / 3; // 3 gravity zone, 3 lines of asteroids
+
+    for (let j = 0; j < ((H/3) / CELL_H); ++j) {
+        for (let i = 0; i < (W / CELL_W); ++i) {
+            const x = i*CELL_W + (CELL_W / 2);
+            const y = j*CELL_H + (H / 3) + (CELL_H / 2);
+            const trap = Bodies.rectangle(
+                x+(5-Math.random()*10),
+                y+(2-Math.random()*4),
+                (CELL_W / 3)+(5-Math.random()*10),
+                (CELL_H / 3)+(5-Math.random()*10),
+                { friction : 0.1, frictionAir: 0.001 }
+                )
+            Body.setAngularVelocity(trap, (Math.random() - 0.5) * 0.05);
+            const forceMagnitude = 0.0005 * trap.mass;
+            Body.applyForce(trap, trap.position,
+                Vector.rotate({ x: 0, y: -forceMagnitude }, Math.random()*Math.PI*2)
+            );
+            bodies.push(trap);
+        }
+    }
+    
+    //
+    // Ground
+    //
+
+    const PADDING = 10;
+    const SPLITS = 26;
+    const WG = (W-20)/SPLITS;
+    
+    // use trapezoids instead?
+    //const trap = Bodies.trapezoid( 20*(i+1), H / 2, Math.random()*30+10, Math.random()*30+10, Math.random() );
+    for(let j=0;j<2;++j){
+        for(let i=0;i<SPLITS;++i){
+            const x = i*WG;
+            const h = PADDING+Math.random()*40;
+            // j === 0 ? DOWN : UP
+            const y = j === 0 ? H-PADDING-(h/2) : PADDING+(h/2);
+            const trap = Bodies.rectangle(
+                x+PADDING+(WG/2),
+                y,
+                WG,
+                h,
+                { isStatic : true }
+                )
+            bodies.push(trap);   
+        }
+    }
+
+    // add all bodies
     World.add(engine.world, bodies);
-
-    // run the engine
     Engine.run(engine);
+
+    //
+    // Control stuff
+    //
 
     const keys = {};
     window.onkeydown = e  => keys[e.keyCode] = true;
@@ -206,11 +260,9 @@ function main() {
         // Gravities
         //
         
-        const bs = Matter.Composite.allBodies(engine.world);
-        
-        for(let i = 0; i<bs.length; ++i){
-            const g = modifier3(bs[i].position.y) * .2;
-            bs[i].force.y += bs[i].mass * g * 0.001;            
+        for( let b of Composite.allBodies(engine.world) ){
+            const g = modifier3(b.position.y) * .2;
+            b.force.y += b.mass * g * 0.001;            
         }
 
         //
@@ -234,6 +286,9 @@ function main() {
         // break / slow down
         if (keys[VK.S] || keys[VK.DOWN]) {
             ship.brake();
+
+            // removes ship!
+            //Matter.Composite.removeBody(engine.world,ship.body);
         }
 
         // standard rotate right/left
