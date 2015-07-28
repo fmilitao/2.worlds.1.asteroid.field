@@ -1,0 +1,23 @@
+{
+    "version": "1.5.0",
+    "compilerOptions": {
+        "target": "es5",
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "sourceMap": true,
+        "removeComments": true,
+        "noLib": false,
+        "preserveConstEnums": true,
+        "outDir": "./bin",
+        "suppressImplicitAnyIndexErrors": true
+    },
+    "compileOnSave": true,
+    "filesGlob": [
+        "./**/*.ts",
+        "./**/*.tsx",
+        "!./node_modules/**/*"
+    ],
+    "files": [
+        "./main.ts"
+    ]
+}
