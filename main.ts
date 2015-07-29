@@ -42,7 +42,11 @@ class Ship {
             Vertices.create(Ship.vertices),
             {
                 // friction: 0.01
-                restitution: 0.5
+                restitution: 0.5,
+                render: {
+                    strokeStyle: 'rgba(29, 127, 225, 0.5)',
+                    fillStyle: 'rgba(29, 127, 225, 0.8)'
+                } 
             });
     }
 
@@ -133,7 +137,10 @@ module Bounds {
             const trap = Bodies.rectangle(
                 x+PADDING+(cellWidth/2), y,
                 cellWidth, h,
-                { isStatic : true }
+                { 
+                    isStatic : true,
+                    render: { visible: false }
+                }
                 );
             bodies.push(trap);   
         }
@@ -269,13 +276,30 @@ module Bounds {
     };
     
     export function addAsteroids2(W : number, H: number, bodies :any[]){
-        const x = W/2, y = H/2;
+        const randomH = () => (H/3)+Math.random()*(H/3);
+        const randomW = () => Math.random()*50+30;
+        const minH = (H/3)+50;
+        const maxH =  (2*H/3)-50;
         
-        const PARTS = 7;
+        let x=PADDING+50;
+        while( x < (W-50)){
+            let w = randomW();
+            let y = randomH();
+            y = Math.max(minH,y);
+            y = Math.min(maxH,y);
+            bodies.push( addAsteroid(x,y) );
+            x += w;
+        }
+    };
+    
+    function addAsteroid(x : number, y: number ) : any {        
+        const PARTS = Math.floor(4+Math.random()*4);
         const compound : any[] = [];
+        const size = () => 15+Math.random()*20;
         // TODO: add more than one, and random angle step.
-        let last = {x:30+Math.random()*20,y:0};
+        let last = {x: size(),y:0};
         const first = {x:last.x,y:last.y};
+                
         for(let i=0;i<PARTS;++i){
             const angle = (Math.PI*2)/PARTS;
             
@@ -287,7 +311,7 @@ module Bounds {
             if( i === (PARTS-1) ){
                 THIRD = first;
             }else{
-                THIRD = {x:30+Math.random()*20,y:0};
+                THIRD = {x: size(),y:0};
                 last.x = THIRD.x;
                 last.y = THIRD.y;
             }
@@ -298,23 +322,39 @@ module Bounds {
             
             const vs = [ CENTER, WIDTH, THIRD ];
             const c = Vertices.centre(vs);
-            const trap = Bodies.fromVertices(
-                x+c.x, // adds the x_offset
-                y+c.y, // adds the y_offset
-                Vertices.create(vs)
-                );
+            let trap : any;
+            
+            if( compound.length > 0 ){
+                trap = Bodies.fromVertices(
+                    x+c.x, // adds the x_offset
+                    y+c.y, // adds the y_offset
+                    Vertices.create(vs),
+                    { render: compound[0].render }
+                    );
+            }else{
+                trap = Bodies.fromVertices(
+                    x+c.x, // adds the x_offset
+                    y+c.y, // adds the y_offset
+                    Vertices.create(vs),
+                    { render: {
+                        strokeStyle: 'rgb(153, 102, 51)',
+                        fillStyle: 'rgb(153, 102, 51)',
+                    } }
+                    );
+            }
                 
             compound.push(trap);      
         } 
         
         const ast = Body.create({ parts: compound, friction : 0.1, frictionAir: 0.001 });
-        bodies.push(ast);
         
         Body.setAngularVelocity(ast, (Math.random() - 0.5) * 0.05);
                 const forceMagnitude = 0.0005 * ast.mass;
                 Body.applyForce(ast, ast.position,
                     Vector.rotate({ x: 0, y: -forceMagnitude }, Math.random()*Math.PI*2)
                 );
+        
+        return ast;
     };
     
 };
@@ -339,8 +379,8 @@ function main() {
                 width: W,
                 height: H,
                 wireframes: true,
-                showVelocity: true,
-                showPositions: true
+                //showVelocity: false,
+                //showPositions: true
             }
         },
         world: {
@@ -401,6 +441,7 @@ function main() {
 
     // assumes 'x' between [0..H] and converts to [0..2]
     const modifier3 = (x: number) => [-1, 0, 1][Math.floor(x / (H / 3))];
+    let collisionCounter = 0;
 
     Events.on(engine, 'beforeUpdate', function() {
 
@@ -416,9 +457,10 @@ function main() {
         //
         // Ship controls
         //
-
+        let thrusters = false;
         if (keys[VK.W] || keys[VK.UP]) {
             ship.thrust();
+            thrusters = true;
         }
 
         // these controls are way too hard...
@@ -453,7 +495,16 @@ function main() {
 
         const b = ship.body;
         hud.innerHTML = '[ '+b.position.x.toFixed(1) + ', ' + b.position.y.toFixed(1) + ' ]<br/>'+
-            '[ ' + b.velocity.x.toFixed(1) + ', ' + b.velocity.y.toFixed(1) + ' ] ' + b.angularVelocity;
+            '[ ' + b.velocity.x.toFixed(1) + ', ' + b.velocity.y.toFixed(1) + ' ] ' + b.angularVelocity.toFixed(5) + '<br/>'+
+            'engines='+(thrusters?'on':'off')+' collisions='+collisionCounter;
+    });
+    
+    Events.on(engine, 'collisionStart', function(event : any) {
+        for(const {bodyA:ba,bodyB:bb} of event.pairs){
+            if( ba.id === ship.body.id || bb.id === ship.body.id ){
+                collisionCounter += 1;
+            }
+        }
     });
 
 };
