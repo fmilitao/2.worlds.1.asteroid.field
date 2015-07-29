@@ -1,4 +1,4 @@
-# untitled.project.7
+# 2 Worlds, 1 Asteroid Field
 
 Uses [matter.js](http://brm.io/matter-js/) for physics (and rendering).
 
@@ -11,6 +11,6 @@ Controls:
 * `q` and `e` for rotating left or right, respectively.
 * `s`, `down arrow` for "brakes".
 
-[Online demo](http://fmilitao.github.io/untitled.project.7/test.html).
+[Online demo](https://github.com/fmilitao/2.worlds.1.asteroid.field.git/test.html).
 
 No real objective, just experimenting the physiscs engine...
