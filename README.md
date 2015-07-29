@@ -1,6 +1,6 @@
 # untitled.project.7
 
-Uses [`matter.js`](http://brm.io/matter-js/) for physics (and rendering).
+Uses [matter.js](http://brm.io/matter-js/) for physics (and rendering).
 
 Two grounds and an asteroid field in the middle.
 Minimum resolution is 800*600, more space and it will maximize to available window. 
