@@ -11,6 +11,6 @@ Controls:
 * `q` and `e` for rotating left or right, respectively.
 * `s`, `down arrow` for "brakes".
 
-[Online demo](https://github.com/fmilitao/2.worlds.1.asteroid.field/test.html).
+[Online demo](https://fmilitao.github.io/2.worlds.1.asteroid.field/test.html).
 
 No real objective, just experimenting the physiscs engine...
