@@ -50,6 +50,11 @@ class Ship {
             });
     }
 
+    move(x: number, y: number) {
+        this.brake();
+        Body.setPosition(this.body, { x, y });
+    }
+
     brake(){
         Body.setVelocity(this.body, {
             x: this.body.velocity.x * Ship.factor,
@@ -438,6 +443,7 @@ function main() {
     const keys = {};
     window.onkeydown = e  => keys[e.keyCode] = true;
     window.onkeyup = e => keys[e.keyCode] = false;
+    window.onclick = e => ship.move(e.clientX, e.clientY);
 
     // assumes 'x' between [0..H] and converts to [0..2]
     const modifier3 = (x: number) => [-1, 0, 1][Math.floor(x / (H / 3))];
